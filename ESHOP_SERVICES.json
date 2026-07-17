@@ -1,0 +1,353 @@
+{
+  "catalogVersion": "1.0",
+  "generatedOn": "2026-07-17",
+  "workspace": "D:/projects/spring-boot/eshop",
+  "runnableServiceCount": 19,
+  "notes": [
+    "Entities are JPA classes discovered from active @Entity annotations.",
+    "Several services map shared database tables; an entity mapping does not necessarily imply exclusive table ownership.",
+    "Services without persistence mappings have an empty entities object."
+  ],
+  "excludedModules": {
+    "common-eshop": "Shared Java library, not a runnable Spring Boot service.",
+    "common-merchant": "Shared merchant library, not a runnable Spring Boot service.",
+    "shared-libs": "Shared libraries, not a runnable Spring Boot service.",
+    "ui-toanchetpay": "Frontend application, not a Spring Boot service."
+  },
+  "services": [
+    {
+      "name": "account-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage merchant and store settlement accounts.",
+        "Maintain merchant registration, approval, unauthorized-change, and history records.",
+        "Coordinate account information with merchant, store-setting, and connector services."
+      ],
+      "entities": {
+        "BackEndUser": "EBE_USERS",
+        "MerchantAccount": "TBL_MERCHANT_ACCOUNTS",
+        "MerchantAccountHis": "TBL_MERCHANT_ACCOUNTS_HIS",
+        "MerchantAccountUna": "TBL_MERCHANT_ACCOUNTS_UNA",
+        "MerchantRegister": "TBL_MERCHANT_REGISTER",
+        "MerchantRegisterHis": "TBL_MERCHANT_REGISTER_HIS",
+        "MerchantRegisterUna": "TBL_MERCHANT_REGISTER_UNA",
+        "StoreAccount": "TBL_STORES_ACCOUNTS",
+        "StoreAccountHistory": "TBL_STORES_ACCOUNTS_HIS"
+      }
+    },
+    {
+      "name": "acs-bff-backoffice",
+      "type": "backoffice-bff",
+      "responsibilities": [
+        "Provide authentication and user/profile APIs for the securities back office.",
+        "Aggregate client profile, fund, investment, NAV, and history operations.",
+        "Integrate with the CSX external service."
+      ],
+      "entities": {}
+    },
+    {
+      "name": "api-gateway",
+      "type": "gateway",
+      "responsibilities": [
+        "Route external requests to downstream eShop services.",
+        "Apply gateway-level security, filtering, and cross-cutting request policies.",
+        "Provide fallback responses when downstream routes are unavailable."
+      ],
+      "entities": {}
+    },
+    {
+      "name": "bff-mobile",
+      "type": "mobile-bff",
+      "responsibilities": [
+        "Authenticate mobile customers and maintain customer tokens.",
+        "Aggregate store, category, product, cart, order, delivery, refund, sale-event, search, and shipping-address APIs.",
+        "Translate mobile requests into calls to downstream eShop services."
+      ],
+      "entities": {
+        "Customer": "TBL_CUST_CUSTOMERS",
+        "Token": "TBL_CUST_TOKENS"
+      }
+    },
+    {
+      "name": "bff-pos",
+      "type": "pos-bff",
+      "responsibilities": [
+        "Authenticate POS users and maintain POS tokens.",
+        "Aggregate POS product, category, order, dashboard, payment-summary, and user-management APIs.",
+        "Resolve merchant and partner context for POS operations."
+      ],
+      "entities": {
+        "MerchantDetailsEntity": "BR_MERCHANT_DETAILS",
+        "PartnerDetailsEntity": "BR_PARTNER_DETAILS",
+        "TokenEntity": "POS_TOKENS",
+        "UserEntity": "BR_MERCHANT_TEAM"
+      }
+    },
+    {
+      "name": "bff-toanchetpay",
+      "type": "merchant-portal-bff",
+      "responsibilities": [
+        "Authenticate merchant-portal users with tokens, OTP, password history, and two-step verification.",
+        "Enforce profiles, functions, subfunctions, menu permissions, settings, and merchant context.",
+        "Aggregate product, catalog, shop, order, stock, delivery, refund, reporting, payment, notification, and banking-portal APIs.",
+        "Record user audits and publish transactional outbox events."
+      ],
+      "entities": {
+        "AppSetting": "TNCP_APP_SETTINGS",
+        "Function": "TNCP_FUNCTIONS",
+        "MerchantDetails": "BR_MERCHANT_DETAILS",
+        "MerchantVendor": "BR_MERCHANT_VENDORS",
+        "OtpTransactionEntity": "TNCP_OTP_TRANSACTION",
+        "OutboxEventEntity": "TNCP_OUTBOX_EVENT",
+        "PartnerDetails": "BR_PARTNER_DETAILS",
+        "PasswordHistory": "TNCP_USER_PASSWORD_HISTORY",
+        "Profile": "TNCP_PROFILES",
+        "ProfileDetails": "BR_MERCHANT_DETAILS",
+        "RoleMenuPermission": "TNCP_PROFILE_MENU_PERMISSIONS",
+        "SubFunction": "TNCP_SUBFUNCTIONS",
+        "Token": "TNCP_TOKENS",
+        "User": "BR_MERCHANT_TEAM",
+        "UserActionAudit": "TNCP_USER_ACTION_AUDIT",
+        "UserActionAuditDetail": "TNCP_USER_ACTION_AUDIT_DTL",
+        "UserLogin": "BR_MERCHANT_TEAM",
+        "UserSetting": "TNCP_USER_SETTINGS"
+      }
+    },
+    {
+      "name": "bff-webhook",
+      "type": "webhook-bff",
+      "responsibilities": [
+        "Receive and validate GrabExpress webhook callbacks.",
+        "Receive Telegram webhook events.",
+        "Expose JWK information required by webhook security flows."
+      ],
+      "entities": {}
+    },
+    {
+      "name": "catalog-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage product categories and subcategories.",
+        "Expose catalog lookup and maintenance APIs.",
+        "Coordinate category media with storage-service."
+      ],
+      "entities": {
+        "CategoryEntity": "TBL_PROD_CATEGORIES",
+        "SubCategoryEntity": "TBL_PROD_SUBCATEGORIES"
+      }
+    },
+    {
+      "name": "connector-service",
+      "type": "integration-service",
+      "responsibilities": [
+        "Provide the boundary between eShop services and external providers.",
+        "Integrate with XPay, T24, Mobile TC, notification providers, and GrabExpress.",
+        "Manage external-provider access tokens and normalize provider responses."
+      ],
+      "entities": {
+        "ExternalTokensEntity": "TBL_EXTERNAL_TOKENS"
+      }
+    },
+    {
+      "name": "delivery-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage delivery companies, store delivery configuration, and delivery-fee rules.",
+        "Calculate delivery fees and determine delivery availability.",
+        "Request GrabExpress quotes, validate distance, package dimensions, weight, and operating time, and select BIKE or TRICYCLE.",
+        "Book Grab deliveries and process shipment status callbacks."
+      ],
+      "entities": {
+        "Company": "TBL_COMPANIES",
+        "DeliveryFee": "TBL_DELIVERY_FEE",
+        "GrabDeliveryFeeEntity": "TBL_GRAB_DELIVERY_FEE",
+        "OrderEntity": "TBL_ORD_ORDER",
+        "ShipmentEntity": "TBL_ORD_SHIPMENT",
+        "ShipmentStatusHisEntity": "TBL_ORD_SHIPMENT_STATUS_HIS",
+        "StoreDeliveryConfig": "TBL_STORES_DELIVERY_CONFIG"
+      }
+    },
+    {
+      "name": "location-service",
+      "type": "domain-integration-service",
+      "responsibilities": [
+        "Provide province, district, and commune gazetteer data.",
+        "Resolve coordinates through geocoding and reverse-geocoding operations.",
+        "Provide location calculations used by delivery and store flows."
+      ],
+      "entities": {
+        "Commune": "TBL_ADDR_COMMNUNES",
+        "District": "TBL_ADDR_DISTRICTS",
+        "Province": "TBL_ADDR_PROVINCES"
+      }
+    },
+    {
+      "name": "merchant-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage merchant, partner, and merchant-team information.",
+        "Expose merchant account views and merchant lookup APIs.",
+        "Coordinate merchant operations with connector-service."
+      ],
+      "entities": {
+        "AccountEntity": "TBL_MERCHANT_ACCOUNTS",
+        "MerchantDetailEntity": "BR_MERCHANT_DETAILS",
+        "MerchantTeamEntity": "BR_MERCHANT_TEAM",
+        "PartnerDetailEntity": "BR_PARTNER_DETAILS"
+      }
+    },
+    {
+      "name": "order-service",
+      "type": "domain-orchestration-service",
+      "responsibilities": [
+        "Create checkout forms and validate products, prices, stock, stores, customers, and delivery selections.",
+        "Create and manage orders, order items, payments, KHQR data, shipments, and shipment history.",
+        "Coordinate account, cart, connector, delivery, shop, stock, and refund workflows.",
+        "Book Grab delivery using the vehicle type persisted on TBL_ORD_SHIPMENT."
+      ],
+      "entities": {
+        "MobileCustomerEntity": "TBL_CUST_CUSTOMERS",
+        "OrderEntity": "TBL_ORD_ORDER",
+        "OrderItemEntity": "TBL_ORD_ORDER_ITEMS",
+        "PaymentEntity": "TBL_ORD_PAYMENT",
+        "PaymentKhQrEntity": "TBL_ORD_PAYMENT_KHQR",
+        "ProductEntity": "TBL_PROD_ITEMS",
+        "RefundEntity": "TBL_RFD_REFUND",
+        "ShipmentEntity": "TBL_ORD_SHIPMENT",
+        "ShipmentStatusHisEntity": "TBL_ORD_SHIPMENT_STATUS_HIS",
+        "StockMovementEntity": "TBL_STOCK_MOVEMENT",
+        "StockTransactionEntity": "TBL_STOCK_TXN",
+        "StockTransactionItemEntity": "TBL_STOCK_TXN_ITEM",
+        "StoreEntity": "TBL_STORES",
+        "SuspendAccountEntity": "TBL_SUSPEND_ACCOUNTS",
+        "VariantEntity": "TBL_PROD_ITEMS_VARIANT"
+      }
+    },
+    {
+      "name": "product-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage products, variants, variant options and tiers, dimensions, images, brands, suppliers, units, VAT, and categories.",
+        "Support product search, wish lists, and product-click tracking.",
+        "Coordinate product media, account context, store settings, and stock-related records."
+      ],
+      "entities": {
+        "BrandEntity": "TBL_PROD_BRAND",
+        "CategoryEntity": "TBL_PROD_CATEGORIES",
+        "ImageEntity": "TBL_PROD_ITEMS_IMG",
+        "ProductClickEntity": "TBL_PROD_CLICKS",
+        "ProductEntity": "TBL_PROD_ITEMS",
+        "StockMovementEntity": "TBL_STOCK_MOVEMENT",
+        "StockTransactionEntity": "TBL_STOCK_TXN",
+        "StockTransactionItemEntity": "TBL_STOCK_TXN_ITEM",
+        "StoreEntity": "TBL_STORES",
+        "SubCategory": "TBL_PROD_SUBCATEGORIES",
+        "SupplierEntity": "TBL_SUPPLIERS",
+        "UnitEntity": "TBL_PROD_UNIT",
+        "VariantEntity": "TBL_PROD_ITEMS_VARIANT",
+        "VariantOptionEntity": "TBL_PROD_ITEMS_VARIANT_OPTIONS",
+        "VariantTierEntity": "TBL_PROD_VARIANT_TIER",
+        "VariantType": "TBL_PROD_VARIANT_TYPE",
+        "VariantTypeEntity": "TBL_PROD_VARIANT_TYPE",
+        "VatEntity": "TBL_VATS",
+        "WishListItemEntity": "TBL_PROD_ITEMS_WISH_LIST"
+      }
+    },
+    {
+      "name": "refund-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Create and manage customer refund requests and refund items.",
+        "Store refund evidence and refund-payment records.",
+        "Read related order, payment, store, and customer data and coordinate external refund processing."
+      ],
+      "entities": {
+        "CustomerEntity": "TBL_CUST_CUSTOMERS",
+        "OrderEntity": "TBL_ORD_ORDER",
+        "OrderItemEntity": "TBL_ORD_ORDER_ITEMS",
+        "PaymentEntity": "TBL_ORD_PAYMENT",
+        "RefundEntity": "TBL_RFD_REFUND",
+        "RefundImageEntity": "TBL_RFD_FILE",
+        "RefundItemEntity": "TBL_RFD_REFUND_ITEMS",
+        "RefundPaymentEntity": "TBL_RFD_PAYMENT",
+        "StoreEntity": "TBL_STORES"
+      }
+    },
+    {
+      "name": "setting-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage store-level settings.",
+        "Maintain store exchange rates and their history.",
+        "Expose exchange-rate configuration used by product, order, and delivery calculations."
+      ],
+      "entities": {
+        "StoreExchangeRateEntity": "TBL_STORES_EXCHANGE_RATE",
+        "StoreExchangeRateHisEntity": "TBL_STORES_EXCHANGE_RATE_HIS"
+      }
+    },
+    {
+      "name": "shop-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage stores, store profiles, addresses, files, opening hours, types, business types, and default-store settings.",
+        "Manage store members, roles, permissions, users, and followers.",
+        "Aggregate merchant, account, product, order, storage, location, and merchant-portal information for shop operations."
+      ],
+      "entities": {
+        "BusinessType": "TBL_STORES_BUSINESS_TYPES",
+        "Commune": "TBL_ADDR_COMMNUNES",
+        "DefaultCurrencyPOS": "TBL_STORES_DEFAULT_POS",
+        "DefaultStore": "TBL_STORES_DEFAULT",
+        "DefaultStorePOSEntity": "TBL_STORES_DEFAULT_POS",
+        "District": "TBL_ADDR_DISTRICTS",
+        "Function": "TBL_FUNCTIONS",
+        "PosDefaultCcyEntity": "TBL_POS_DEFAULT_CCY",
+        "Product": "TBL_PROD_ITEMS",
+        "Province": "TBL_ADDR_PROVINCES",
+        "StoreAddress": "TBL_STORES_ADDRESS",
+        "StoreEntity": "TBL_STORES",
+        "StoreFile": "TBL_STORES_FILES",
+        "StoreFollowEntity": "TBL_STORES_FOLLOW",
+        "StoreMemberEntity": "TBL_STORES_MEMBERS",
+        "StoreOpeningHourEntity": "TBL_STORES_OPENING_HOURS",
+        "StorePermission": "TBL_STORES_PERMISSIONS",
+        "StoreRole": "TBL_STORES_ROLES",
+        "StoreType": "TBL_STORES_TYPES",
+        "SubFunction": "TBL_SUBFUNCTIONS"
+      }
+    },
+    {
+      "name": "stock-service",
+      "type": "domain-service",
+      "responsibilities": [
+        "Manage product-variant stock levels.",
+        "Record stock transactions, transaction items, and stock movements.",
+        "Expose inventory adjustment and stock lookup APIs."
+      ],
+      "entities": {
+        "ProductEntity": "TBL_PROD_ITEMS",
+        "StockMovementEntity": "TBL_STOCK_MOVEMENT",
+        "StockTransactionEntity": "TBL_STOCK_TXN",
+        "StockTransactionItemEntity": "TBL_STOCK_TXN_ITEM",
+        "VariantEntity": "TBL_PROD_ITEMS_VARIANT"
+      }
+    },
+    {
+      "name": "storage-service",
+      "type": "infrastructure-service",
+      "responsibilities": [
+        "Store file metadata and temporary-upload metadata.",
+        "Handle product, shop, category, brand, company, marketing, and refund file operations.",
+        "Coordinate image background removal and image-detection providers."
+      ],
+      "entities": {
+        "FileEntity": "TBL_FILE_STORAGE",
+        "FileTmpEntity": "TBL_FILE_STORAGE_TMP",
+        "ProductItemImage": "TBL_PROD_ITEMS_IMG",
+        "ProductItemVariant": "TBL_PROD_ITEMS_VARIANT",
+        "RefundFileEntity": "TBL_RFD_FILE"
+      }
+    }
+  ]
+}

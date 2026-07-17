@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vyntra-config
+  namespace: vyntra
+data:
+  bff-service-url: http://vyntra-bff:8080
+  user-service-url: http://user-service:8080/internal/users
+  business-service-url: http://business-service:8080
+  shop-service-url: http://shop-service:8080
+  product-service-url: http://product-service:8080
+  inventory-service-url: http://inventory-service:8080
+  order-service-url: http://order-service:8080
+  redis-host: redis
+  redis-port: "6379"
+  user-db-url: jdbc:mysql://mysql:3306/vyntra_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+  business-db-url: jdbc:mysql://mysql:3306/vyntra_business?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+  shop-db-url: jdbc:mysql://mysql:3306/vyntra_shop?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+  product-db-url: jdbc:mysql://mysql:3306/vyntra_product?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+  order-db-url: jdbc:mysql://mysql:3306/vyntra_order?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
