@@ -1,0 +1,105 @@
+# MySQL on k3s — exactly TWO databases on the SERVER:
+#   x_dev  = used when apps run with profile "local" (dev on laptop → this DB)
+#   x_prod = used when apps run with profile "production"
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: x-platform
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: x-platform
+type: Opaque
+stringData:
+  root-password: "CHANGE_ME_ROOT"
+  # app users created in init SQL
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: x-platform
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init
+  namespace: x-platform
+data:
+  01-init.sql: |
+    CREATE DATABASE IF NOT EXISTS x_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE DATABASE IF NOT EXISTS x_prod CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE USER IF NOT EXISTS 'x_dev'@'%' IDENTIFIED BY 'CHANGE_ME_DEV';
+    CREATE USER IF NOT EXISTS 'x_prod'@'%' IDENTIFIED BY 'CHANGE_ME_PROD';
+    GRANT ALL PRIVILEGES ON x_dev.* TO 'x_dev'@'%';
+    GRANT ALL PRIVILEGES ON x_prod.* TO 'x_prod'@'%';
+    FLUSH PRIVILEGES;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: x-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: root-password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 2Gi
+              cpu: "1"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+        - name: init
+          configMap:
+            name: mysql-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: x-platform
+spec:
+  type: NodePort
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+      nodePort: 30306
