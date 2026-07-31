@@ -128,9 +128,9 @@ INSERT IGNORE INTO roles (role_code, role_name, business_id, is_system, descript
 ('MANAGER', 'Store Manager', 1, 1, 'Seeded RBAC'),
 ('CASHIER', 'Cashier', 1, 1, 'Seeded RBAC');
 
-SET @owner_id  = (SELECT id FROM roles WHERE role_code = 'OWNER');
-SET @mgr_id    = (SELECT id FROM roles WHERE role_code = 'MANAGER');
-SET @cashier_id = (SELECT id FROM roles WHERE role_code = 'CASHIER');
+SET @owner_id  = (SELECT MIN(id) FROM roles WHERE role_code = 'OWNER');
+SET @mgr_id    = (SELECT MIN(id) FROM roles WHERE role_code = 'MANAGER');
+SET @cashier_id = (SELECT MIN(id) FROM roles WHERE role_code = 'CASHIER');
 
 -- OWNER → ALL permissions
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
@@ -175,7 +175,7 @@ SELECT @cashier_id, id FROM permissions WHERE permission_code IN (
 INSERT IGNORE INTO users (username, password, full_name, email, status, is_locked, failed_attempt)
 VALUES ('admin', '$2b$10$IeyR/9/m/9al8j3KtNIXeeA54r6oqw9HlMEGUBcK4kNzV7/iw7JBK', 'System Administrator', 'admin@x.local', 1, 0, 0);
 
-SET @admin_id = (SELECT id FROM users WHERE username = 'admin');
+SET @admin_id = (SELECT MIN(id) FROM users WHERE username = 'admin');
 
 -- 5. Store membership (admin → store 101, OWNER)
 INSERT IGNORE INTO store_members (user_id, store_id, role_id)

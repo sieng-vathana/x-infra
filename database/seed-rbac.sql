@@ -79,9 +79,9 @@ INSERT IGNORE INTO roles (role_code, role_name, business_id, is_system, descript
 
 -- 3. Role → Permission links
 -- Helper: role_id lookup via role_code
-SET @owner_id  = (SELECT id FROM roles WHERE role_code = 'OWNER');
-SET @mgr_id    = (SELECT id FROM roles WHERE role_code = 'MANAGER');
-SET @cashier_id = (SELECT id FROM roles WHERE role_code = 'CASHIER');
+SET @owner_id  = (SELECT MIN(id) FROM roles WHERE role_code = 'OWNER');
+SET @mgr_id    = (SELECT MIN(id) FROM roles WHERE role_code = 'MANAGER');
+SET @cashier_id = (SELECT MIN(id) FROM roles WHERE role_code = 'CASHIER');
 
 -- OWNER → ALL permissions
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
@@ -127,7 +127,7 @@ INSERT IGNORE INTO users (username, password, full_name, email, status, is_locke
 VALUES ('admin', '$2b$10$IeyR/9/m/9al8j3KtNIXeeA54r6oqw9HlMEGUBcK4kNzV7/iw7JBK', 'System Administrator', 'admin@x.local', 1, 0, 0);
 
 -- 5. Store membership (admin → store 101, OWNER role)
-SET @admin_id = (SELECT id FROM users WHERE username = 'admin');
+SET @admin_id = (SELECT MIN(id) FROM users WHERE username = 'admin');
 INSERT IGNORE INTO store_members (user_id, store_id, role_id)
 VALUES (@admin_id, 101, @owner_id);
 
