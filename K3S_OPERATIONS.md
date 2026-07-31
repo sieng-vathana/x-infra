@@ -1,9 +1,9 @@
 # X Platform K3s Operations Guide
 
-This guide is for developers operating the shared K3s server. Run commands after connecting through the approved SSH access method.
+This guide is for developers operating the production K3s server. Run commands after connecting through the approved SSH access method.
 
 ```bash
-ssh <deploy-user>@<server-host>
+ssh deploy@217.216.74.91
 ```
 
 All application resources run in the `x-platform` namespace.
@@ -78,6 +78,7 @@ x-store-service
 x-user-service
 mysql
 redis
+x-kafka
 ```
 
 ## Database and Redis checks
@@ -94,13 +95,35 @@ sudo k3s kubectl logs -n x-platform deployment/redis --tail=100
 Open a MySQL shell only when you have the approved credentials:
 
 ```bash
-sudo k3s kubectl exec -it -n x-platform deployment/mysql -- mysql -u <username> -p x_prod
+sudo k3s kubectl exec -it -n x-platform deployment/mysql -- mysql -u x_prod -p x_prod
 ```
 
 Test Redis from its pod:
 
 ```bash
 sudo k3s kubectl exec -it -n x-platform deployment/redis -- redis-cli ping
+```
+
+## Kafka checks
+
+```bash
+sudo k3s kubectl logs -n x-platform deployment/x-kafka --tail=100
+sudo k3s kubectl exec -it -n x-platform deployment/x-kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+```
+
+## Headlamp dashboard
+
+Access at: **http://217.216.74.91/headlamp/** (trailing slash required)
+
+```bash
+sudo k3s kubectl get pods -n headlamp
+sudo k3s kubectl logs -n headlamp deployment/headlamp --tail=100
+```
+
+Generate a new token (valid 10 years):
+
+```bash
+sudo k3s kubectl -n headlamp create token headlamp-admin --duration=87600h
 ```
 
 ## Resource usage
