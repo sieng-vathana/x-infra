@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS roles (
     role_code VARCHAR(255),
     role_name VARCHAR(255),
     PRIMARY KEY (id)
+    ,UNIQUE KEY uk_roles_business_role_code (business_id, role_code)
 );
 
 CREATE TABLE IF NOT EXISTS role_permissions (
