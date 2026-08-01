@@ -22,6 +22,25 @@ subjects:
     name: headlamp-admin
     namespace: headlamp
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: headlamp-observer
+  namespace: headlamp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-observer-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: headlamp-observer
+    namespace: headlamp
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,7 +56,7 @@ spec:
       labels:
         app: headlamp
     spec:
-      serviceAccountName: headlamp-admin
+      serviceAccountName: headlamp-observer
       containers:
         - name: headlamp
           image: ghcr.io/headlamp-k8s/headlamp:latest
@@ -86,10 +105,18 @@ kind: Ingress
 metadata:
   name: headlamp
   namespace: headlamp
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.learner-teach.online
+      secretName: headlamp-tls
   rules:
-    - http:
+    - host: api.learner-teach.online
+      http:
         paths:
           - path: /headlamp
             pathType: Prefix
