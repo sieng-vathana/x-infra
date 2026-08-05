@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS store_members (
     CONSTRAINT FK_sm_user FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
--- 2. Permissions (39 codes)
+-- 2. Permissions (54 codes)
 INSERT IGNORE INTO permissions (permission_code, permission_name, module_name, description) VALUES
 ('x-user:read', 'User read', 'USER', 'Seeded RBAC'),
 ('x-user:create', 'User create', 'USER', 'Seeded RBAC'),
@@ -90,6 +90,8 @@ INSERT IGNORE INTO permissions (permission_code, permission_name, module_name, d
 ('x-product:create', 'Product create', 'PRODUCT', 'Seeded RBAC'),
 ('x-product:update', 'Product update', 'PRODUCT', 'Seeded RBAC'),
 ('x-product:delete', 'Product delete', 'PRODUCT', 'Seeded RBAC'),
+('x-product:unit', 'Product unit', 'PRODUCT', 'Seeded RBAC'),
+('x-product:category', 'Product category', 'PRODUCT', 'Seeded RBAC'),
 ('x-inventory:read', 'Inventory read', 'INVENTORY', 'Seeded RBAC'),
 ('x-inventory:create', 'Inventory create', 'INVENTORY', 'Seeded RBAC'),
 ('x-inventory:update', 'Inventory update', 'INVENTORY', 'Seeded RBAC'),
@@ -141,6 +143,7 @@ SELECT @owner_id, id FROM permissions;
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 SELECT @mgr_id, id FROM permissions WHERE permission_code IN (
     'x-product:read','x-product:create','x-product:update','x-product:delete',
+    'x-product:unit','x-product:category',
     'x-inventory:read','x-inventory:create','x-inventory:update','x-inventory:delete',
     'x-inventory:stock-in','x-inventory:stock-out','x-inventory:reserve',
     'x-order:read','x-order:create','x-order:update','x-order:delete',
@@ -161,7 +164,7 @@ SELECT @mgr_id, id FROM permissions WHERE permission_code IN (
 -- CASHIER → read catalog/store/business/storage + create+read orders + create+read payment (with capture)
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 SELECT @cashier_id, id FROM permissions WHERE permission_code IN (
-    'x-product:read',
+    'x-product:read','x-product:unit','x-product:category',
     'x-inventory:read',
     'x-order:read','x-order:create',
     'x-customer:read','x-customer:create',

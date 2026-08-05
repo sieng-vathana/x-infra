@@ -4,7 +4,7 @@
 -- Safe to re-run: uses INSERT IGNORE so existing rows are preserved.
 -- ============================================================================
 
--- 1. Permissions (39 codes across 12 service modules)
+-- 1. Permissions (54 codes across 12 service modules)
 INSERT IGNORE INTO permissions (permission_code, permission_name, module_name, description) VALUES
 -- user (CRUD)
 ('x-user:read', 'User read', 'USER', 'Seeded RBAC: x-user:read'),
@@ -31,6 +31,8 @@ INSERT IGNORE INTO permissions (permission_code, permission_name, module_name, d
 ('x-product:create', 'Product create', 'PRODUCT', 'Seeded RBAC: x-product:create'),
 ('x-product:update', 'Product update', 'PRODUCT', 'Seeded RBAC: x-product:update'),
 ('x-product:delete', 'Product delete', 'PRODUCT', 'Seeded RBAC: x-product:delete'),
+('x-product:unit', 'Product unit', 'PRODUCT', 'Seeded RBAC: x-product:unit'),
+('x-product:category', 'Product category', 'PRODUCT', 'Seeded RBAC: x-product:category'),
 -- inventory (CRUD + stock-in/out/reserve)
 ('x-inventory:read', 'Inventory read', 'INVENTORY', 'Seeded RBAC: x-inventory:read'),
 ('x-inventory:create', 'Inventory create', 'INVENTORY', 'Seeded RBAC: x-inventory:create'),
@@ -91,6 +93,7 @@ SELECT @owner_id, id FROM permissions;
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 SELECT @mgr_id, id FROM permissions WHERE permission_code IN (
     'x-product:read', 'x-product:create', 'x-product:update', 'x-product:delete',
+    'x-product:unit', 'x-product:category',
     'x-inventory:read', 'x-inventory:create', 'x-inventory:update', 'x-inventory:delete',
     'x-inventory:stock-in', 'x-inventory:stock-out', 'x-inventory:reserve',
     'x-order:read', 'x-order:create', 'x-order:update', 'x-order:delete',
@@ -111,7 +114,7 @@ SELECT @mgr_id, id FROM permissions WHERE permission_code IN (
 -- CASHIER → read catalog/store/business/storage + create+read orders (no refund/cancel) + create+read payment (with capture)
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
 SELECT @cashier_id, id FROM permissions WHERE permission_code IN (
-    'x-product:read',
+    'x-product:read', 'x-product:unit', 'x-product:category',
     'x-inventory:read',
     'x-order:read', 'x-order:create',
     'x-customer:read', 'x-customer:create',
