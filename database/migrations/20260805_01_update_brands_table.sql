@@ -1,0 +1,7 @@
+-- Migration: Add description, is_featured, is_global, created_at, updated_at to brands table
+
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER brand_name;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT FALSE AFTER logo;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT TRUE AFTER is_featured;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER status;
+ALTER TABLE brands ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
