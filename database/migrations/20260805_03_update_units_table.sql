@@ -1,5 +1,6 @@
--- Migration: Add is_global, created_at, updated_at to units table
+-- Migration: Add description, is_global, created_at, updated_at to units table
 
-ALTER TABLE units ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT TRUE AFTER unit_name;
+ALTER TABLE units ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER unit_name;
+ALTER TABLE units ADD COLUMN IF NOT EXISTS is_global BOOLEAN NOT NULL DEFAULT TRUE AFTER description;
 ALTER TABLE units ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER status;
 ALTER TABLE units ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
