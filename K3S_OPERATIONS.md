@@ -1,159 +1,101 @@
-# X Platform K3s Operations Guide
+# X Platform K3s Operations
 
-This guide is for developers operating the production K3s server. Run commands after connecting through the approved SSH access method.
+## Server
 
-```bash
-ssh deploy@217.216.74.91
-```
+- Host: `sg-vathana-vps`
+- IPv4: `45.132.75.51`
+- Cluster: one-node K3s, using Traefik for ingress and local-path for persistent volumes
+- Namespaces: application workloads use `x-platform`; Headlamp runs in `headlamp`
 
-All application resources run in the `x-platform` namespace.
+This server is suitable for the current demo/staging environment. It is a single node, so Kubernetes, MySQL, Kafka, Redis, and local media storage do not have high availability. Persistent volumes live on this VPS disk and need an off-server backup before production use.
 
-## Check platform status
-
-```bash
-sudo k3s kubectl get nodes
-sudo k3s kubectl get deployments,pods,services -n x-platform
-sudo k3s kubectl get pods -A
-```
-
-Watch pods while a deployment is starting:
+Connect with the SSH key stored on the workstation:
 
 ```bash
-sudo k3s kubectl get pods -n x-platform --watch
+ssh -i ~/.ssh/x-platform-vps root@45.132.75.51
 ```
 
-## View logs
+The Kubernetes API port is not open to the public internet. Use SSH for cluster administration.
 
-Replace `<service>` with a service name, for example `x-product-service` or `x-delivery-service`.
+## Check cluster and workloads
 
 ```bash
-sudo k3s kubectl logs -n x-platform deployment/<service> --tail=200
-sudo k3s kubectl logs -n x-platform deployment/<service> --follow
-sudo k3s kubectl logs -n x-platform deployment/<service> --previous --tail=200
+k3s kubectl get nodes -o wide
+k3s kubectl get pods -A
+k3s kubectl get deployments,services,pvc -n x-platform
+k3s kubectl get events -n x-platform --sort-by=.lastTimestamp
 ```
 
-View pod events when a pod does not start:
+Follow a service rollout and inspect logs:
 
 ```bash
-sudo k3s kubectl describe pod -n x-platform <pod-name>
-sudo k3s kubectl get events -n x-platform --sort-by=.lastTimestamp
+k3s kubectl rollout status deployment/<service> -n x-platform --timeout=180s
+k3s kubectl logs -n x-platform deployment/<service> --tail=200
 ```
 
-## Restart or redeploy a service
-
-GitHub Actions deploys automatically after a push to `main`. For a manual restart:
+Check a failed pod before restarting it:
 
 ```bash
-sudo k3s kubectl rollout restart deployment/<service> -n x-platform
-sudo k3s kubectl rollout status deployment/<service> -n x-platform --timeout=180s
+k3s kubectl describe pod -n x-platform <pod-name>
+k3s kubectl logs -n x-platform <pod-name> --previous --tail=200
 ```
 
-Check rollout history or undo the latest rollout:
+## Platform services
+
+- MySQL: `mysql.x-platform.svc.cluster.local:3306`, database `x_prod`, private ClusterIP only
+- Redis: `redis.x-platform.svc.cluster.local:6379`, cache data is ephemeral
+- Kafka: `x-kafka.x-platform.svc.cluster.local:9092`, single broker with a local persistent volume
+- File/media service: currently uses a 5 GiB local persistent volume; configure an S3-compatible endpoint and credentials before switching it to S3
+
+Credentials are stored in Kubernetes Secrets on the VPS. Do not print their values or commit them to Git.
 
 ```bash
-sudo k3s kubectl rollout history deployment/<service> -n x-platform
-sudo k3s kubectl rollout undo deployment/<service> -n x-platform
+k3s kubectl get pods -n x-platform
+k3s kubectl logs -n x-platform deployment/mysql --tail=100
+k3s kubectl logs -n x-platform deployment/x-kafka --tail=100
+k3s kubectl exec -it -n x-platform deployment/x-kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 ```
 
-## List deployed services
+## Headlamp
+
+Headlamp is not exposed on a public ingress. A systemd service binds its port forward to VPS loopback at `127.0.0.1:4466`.
+
+From the workstation, open an SSH tunnel:
 
 ```bash
-sudo k3s kubectl get services -n x-platform
-sudo k3s kubectl get deployment -n x-platform
+ssh -i ~/.ssh/x-platform-vps -L 4466:127.0.0.1:4466 root@45.132.75.51
 ```
 
-Current platform service names:
+Then open `http://localhost:4466` and paste the read-only token from `~/.ssh/x-platform-headlamp-viewer.token`. The token expires after 90 days. To renew it, create a new token for the `headlamp-viewer` service account and store it in the protected workstation file. The viewer role cannot read Kubernetes Secrets or change resources.
 
-```text
-x-api-gateway
-x-bff
-x-business-service
-x-delivery-service
-x-inventory-service
-x-order-service
-x-payment-service
-x-product-service
-x-storage-service
-x-store-service
-x-user-service
-mysql
-redis
-x-kafka
-```
-
-## Database and Redis checks
-
-Do not print Secrets to the terminal or commit them to Git.
+Check the Headlamp pod and tunnel service:
 
 ```bash
-sudo k3s kubectl get pod -n x-platform -l app=mysql
-sudo k3s kubectl get pod -n x-platform -l app=redis
-sudo k3s kubectl logs -n x-platform deployment/mysql --tail=100
-sudo k3s kubectl logs -n x-platform deployment/redis --tail=100
+k3s kubectl get pods -n headlamp
+systemctl status headlamp-port-forward.service
 ```
 
-Open a MySQL shell only when you have the approved credentials:
+## GitHub Actions deployment
+
+Fourteen application repositories have a repository-scoped self-hosted runner on this VPS. Each runner accepts both labels used by the existing workflows: `x-platform-deploy` and `x-platform-deploy-new`. The runners run as the unprivileged `xplatform` account and use a sudo rule limited to `k3s kubectl`.
+
+Build and publish jobs run on GitHub-hosted runners. Deploy jobs use a short-lived workflow token to pull the private GHCR image, wait for it to start, then remove the temporary pull credential. A push to `main` starts the repository's deployment workflow.
+
+The `x-infra` and `x-windows-config` repositories run validation workflows. `x-redis` and `x-sharedlib` publish Maven packages and do not need Kubernetes runners.
+
+## Domains and ingress
+
+Traefik serves HTTP/HTTPS on ports 80/443. cert-manager is configured for Let's Encrypt HTTP-01 challenges. The application Ingress resources use the `traefik` class.
+
+Point each application hostname at `45.132.75.51` before expecting public traffic or a valid certificate. The old API hostname still points at the previous server, so no DNS cutover has been performed.
+
+## Resource and disk checks
 
 ```bash
-sudo k3s kubectl exec -it -n x-platform deployment/mysql -- mysql -u x_prod -p x_prod
-```
-
-Test Redis from its pod:
-
-```bash
-sudo k3s kubectl exec -it -n x-platform deployment/redis -- redis-cli ping
-```
-
-## Kafka checks
-
-```bash
-sudo k3s kubectl logs -n x-platform deployment/x-kafka --tail=100
-sudo k3s kubectl exec -it -n x-platform deployment/x-kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
-```
-
-## Headlamp dashboard
-
-Access at: **http://217.216.74.91/headlamp/** (trailing slash required)
-
-```bash
-sudo k3s kubectl get pods -n headlamp
-sudo k3s kubectl logs -n headlamp deployment/headlamp --tail=100
-```
-
-Generate a new token (valid 10 years):
-
-```bash
-sudo k3s kubectl -n headlamp create token headlamp-admin --duration=87600h
-```
-
-## Resource usage
-
-```bash
-sudo k3s kubectl top nodes
-sudo k3s kubectl top pods -n x-platform
+k3s kubectl top nodes
+k3s kubectl top pods -A
 free -h
 df -h /
 ```
 
-## CI/CD checks from a developer computer
-
-Run these from a workstation authenticated with GitHub CLI:
-
-```bash
-gh run list --repo VathanaProgrammer/<service-repository> --limit 10
-gh run watch --repo VathanaProgrammer/<service-repository> <run-id>
-gh run view --repo VathanaProgrammer/<service-repository> <run-id> --log-failed
-```
-
-Example:
-
-```bash
-gh run list --repo VathanaProgrammer/x-product-service --limit 10
-```
-
-## Important safety rules
-
-- Do not delete namespaces, deployments, volumes, Secrets, or databases without team approval.
-- Do not use `kubectl delete` as a first response to a failed pod; check events and logs first.
-- Never paste passwords, private keys, tokens, or Secret contents into GitHub issues, commits, or chat.
-- Application images are deployed from GitHub Actions after pushes to `main`.
+The MySQL PVC requests 20 GiB, Kafka 5 GiB, and local media storage 5 GiB. Keep space for operating-system updates, runner work directories, and container images.
