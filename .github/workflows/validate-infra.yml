@@ -1,0 +1,47 @@
+name: Validate infrastructure manifests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Kubernetes YAML
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install YAML parser
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+      - name: Parse and check Kubernetes documents
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          files = sorted(Path("k8s").rglob("*.yaml")) + sorted(Path("k8s").rglob("*.yml"))
+          if not files:
+              raise SystemExit("No Kubernetes manifests were found under k8s/")
+          count = 0
+          for path in files:
+              documents = list(yaml.safe_load_all(path.read_text(encoding="utf-8")))
+              for number, document in enumerate(documents, start=1):
+                  if document is None:
+                      continue
+                  if not isinstance(document, dict):
+                      raise SystemExit(f"{path} document {number} is not an object")
+                  if not document.get("apiVersion") or not document.get("kind"):
+                      raise SystemExit(f"{path} document {number} needs apiVersion and kind")
+                  count += 1
+          print(f"Validated {count} Kubernetes documents across {len(files)} files.")
+          PY
