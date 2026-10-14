@@ -6,6 +6,8 @@
 - IPv4: `45.132.75.51`
 - Cluster: one-node K3s, using Traefik for ingress and local-path for persistent volumes
 - Namespaces: application workloads use `x-platform`; Headlamp runs in `headlamp`
+- K3s API: secrets encryption is enabled; public access to port 6443 is blocked
+- Helm: installed for Helm-based platform tools
 
 This server is suitable for the current demo/staging environment. It is a single node, so Kubernetes, MySQL, Kafka, Redis, and local media storage do not have high availability. Persistent volumes live on this VPS disk and need an off-server backup before production use.
 
@@ -14,6 +16,9 @@ Connect with the SSH key stored on the workstation:
 ```bash
 ssh -i ~/.ssh/x-platform-vps root@45.132.75.51
 ```
+
+The temporary recovery key used during the VPS reinstall has been removed. Use
+the persistent `x-platform-vps` SSH key shown above.
 
 The Kubernetes API port is not open to the public internet. Use SSH for cluster administration.
 
@@ -47,7 +52,18 @@ k3s kubectl logs -n x-platform <pod-name> --previous --tail=200
 - Kafka: `x-kafka.x-platform.svc.cluster.local:9092`, single broker with a local persistent volume
 - File/media service: currently uses a 5 GiB local persistent volume; configure an S3-compatible endpoint and credentials before switching it to S3
 
-Credentials are stored in Kubernetes Secrets on the VPS. Do not print their values or commit them to Git.
+Credentials are stored in encrypted Kubernetes Secrets on the VPS. Do not print
+their values or commit them to Git. On a completely fresh cluster, create the
+initial secrets once with:
+
+```bash
+ssh -i ~/.ssh/x-platform-vps root@45.132.75.51 "bash -s" \
+  < scripts/bootstrap-platform-secrets.sh
+```
+
+The script generates new credentials locally on the VPS, stores them directly
+in Kubernetes Secrets, and stops if it finds a partial secret set. It does not
+rotate existing credentials.
 
 ```bash
 k3s kubectl get pods -n x-platform
@@ -77,7 +93,10 @@ systemctl status headlamp-port-forward.service
 
 ## GitHub Actions deployment
 
-Fourteen application repositories have a repository-scoped self-hosted runner on this VPS. Each runner accepts both labels used by the existing workflows: `x-platform-deploy` and `x-platform-deploy-new`. The runners run as the unprivileged `xplatform` account and use a sudo rule limited to `k3s kubectl`.
+Fourteen application repositories have repository-scoped self-hosted runners
+on this VPS. Each runner accepts both labels used by the existing workflows:
+`x-platform-deploy` and `x-platform-deploy-new`. The runners run as the
+unprivileged `xplatform` account and use a sudo rule limited to `k3s kubectl`.
 
 Build and publish jobs run on GitHub-hosted runners. Deploy jobs use a short-lived workflow token to pull the private GHCR image, wait for it to start, then remove the temporary pull credential. A push to `main` starts the repository's deployment workflow.
 
@@ -87,7 +106,9 @@ The `x-infra` and `x-windows-config` repositories run validation workflows. `x-r
 
 Traefik serves HTTP/HTTPS on ports 80/443. cert-manager is configured for Let's Encrypt HTTP-01 challenges. The application Ingress resources use the `traefik` class.
 
-Point each application hostname at `45.132.75.51` before expecting public traffic or a valid certificate. The old API hostname still points at the previous server, so no DNS cutover has been performed.
+The API, backoffice, merchant portal, and online store hostnames currently
+resolve to `45.132.75.51`. cert-manager uses HTTP-01 with Let's Encrypt; each
+application Ingress must be present before its certificate can be issued.
 
 ## Resource and disk checks
 
