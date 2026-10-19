@@ -1,0 +1,124 @@
+# Public marketplace storefront (github.com/raberngbek/market-ui) at market.learner-teach.online.
+# The built site is copied to /srv/market-ui on the node by scripts/deploy-market-ui.sh;
+# "current" points at the release being served, so a deploy or rollback is a symlink change.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: market-ui-nginx
+  namespace: x-platform
+data:
+  default.conf: |
+    server {
+        listen 80;
+        root /srv/market-ui/current;
+        index index.html;
+
+        # Built assets have content hashes in their names, so they never change.
+        location /assets/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+            try_files $uri =404;
+        }
+        location = /index.html {
+            add_header Cache-Control "no-cache";
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-ui
+  namespace: x-platform
+  labels:
+    app: market-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: market-ui
+  template:
+    metadata:
+      labels:
+        app: market-ui
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: site
+              mountPath: /srv/market-ui
+              readOnly: true
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+      volumes:
+        - name: site
+          hostPath:
+            path: /srv/market-ui
+            type: Directory
+        - name: nginx-config
+          configMap:
+            name: market-ui-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-ui
+  namespace: x-platform
+spec:
+  selector:
+    app: market-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: market-ui
+  namespace: x-platform
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - market.learner-teach.online
+      secretName: market-ui-tls
+  rules:
+    - host: market.learner-teach.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: market-ui
+                port:
+                  name: http
